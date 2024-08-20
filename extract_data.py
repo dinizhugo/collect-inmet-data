@@ -8,10 +8,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+
 
 service_chrome = Service(ChromeDriverManager().install())
 
 driver = webdriver.Chrome(service=service_chrome)
+driver_wait = WebDriverWait(driver, 20)
 
 base_path = "data/years"
 current_data = date.today()
@@ -85,43 +90,47 @@ def collect_current_inmet_data(path: str):
                     
                     driver.get(current_URL)
 
-                    sleep(3)
-                    
                     if (last_date > current_data):
                         last_date = end_date
                     
-                    driver.find_element(By.XPATH, '/html/body/div[1]/div[1]/div[1]/i').click()
-                    
-                    sleep(1)
-                    
-                    input_started_date = driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div[4]/input')
-                    
-                    input_started_date.send_keys(last_date.strftime('%d-%m-%Y'))
-                    
-                    sleep(2)
-                    
-                    driver.find_element(By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/button').click()
-                    
-                    sleep(2)
-                    
-                    browser = driver.page_source
-                    
-                    page_content = BeautifulSoup(browser, 'html.parser')
-                    
-                    table = page_content.find('table', attrs={'class':'ui blue celled striped unstackable table'})
-                    
-                    table_body = table.find('tbody', attrs={'class':'tabela-body'})
-                    table_rows = table_body.find_all('tr', attrs={'class':'tabela-row'})
-                    rows = table_body.find_all('td')
-                    
-                    print(table_body.prettify())
-                    print("===========================")
-                    print(table_rows)
-                    
-                    for row in rows:
-                        print(row.text)
-                    sleep(5)
-                    break;
+                    try:    
+                        button_menu = driver_wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[1]/div[1]/i')))
+
+                        sleep(1)
+                        button_menu.click()
+                        
+                        input_started_date = driver_wait.until(EC.visibility_of_element_located((By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/div[4]/input')))
+                        
+                        input_started_date.send_keys(last_date.strftime('%d-%m-%Y'))
+                        
+                        button_generate_table = driver_wait.until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[2]/div[1]/div[2]/button')))
+                        
+                        button_generate_table.click()
+                        
+                        main_table = driver_wait.until(EC.visibility_of_element_located((By.TAG_NAME, 'table')))
+                        
+                        browser = driver.page_source
+                        
+                        page_content = BeautifulSoup(browser, 'html.parser')
+                        
+                        # table = page_content.find('table', attrs={'class':'ui blue celled striped unstackable table'})
+                        
+                        # table_body = table.find('tbody', attrs={'class':'tabela-body'})
+                        # table_rows = table_body.find_all('tr', attrs={'class':'tabela-row'})
+                        # rows = table_body.find_all('td')
+                        
+                        # print(table_body.prettify())
+                        # print("===========================")
+                        # print(table_rows)
+                        
+                        # for row in rows:
+                        #     print(row.text)
+                        # sleep(5)
+                        # break;
+                        print(f">> Dados da estacao {station_code} - {station_name} foram extraidos com sucesso!\n")
+                    except TimeoutException:
+                        print(f"[ERROR] Nao foi possivel extrair os dados da estacao: {station_code} - {station_name}")
+                    print("Extraindo proxima estacao...\n")
         
     
 # Reescrever os meus dados de acordo com os a coleta de dados
